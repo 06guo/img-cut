@@ -1,0 +1,60 @@
+/* 透明度动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity .2s;
+}
+.fade-enter,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 缩放动画 */
+.bounce-enter-active,
+.bounce-leave-active {
+  transition: .2s;
+}
+.bounce-enter,
+.bounce-leave-to {
+  opacity: 0;
+  transform: translate3d(-50%,-50%,0) scale(.5);
+}
+
+/* 从上划入动画 */
+.top-enter-active,
+.top-leave-active {
+  transition: .2s;
+}
+.top-enter,
+.top-leave-to {
+  transform: translate3d(0,-100%,0);
+}
+
+/* 从右边划入动画 */
+.right-enter-active,
+.right-leave-active {
+  transition: .2s;
+}
+.right-enter,
+.right-leave-to {
+  transform: translate3d(100%,0,0);
+}
+
+/* 从下边划入动画 */
+.bottom-enter-active,
+.bottom-leave-active {
+  transition: .2s;
+}
+.bottom-enter,
+.bottom-leave-to {
+  transform: translate3d(0,100%,0);
+}
+
+/* 从左边划入动画 */
+.left-enter-active,
+.left-leave-active {
+  transition: .2s;
+}
+.left-enter,
+.left-leave-to {
+  transform: translate3d(-100%,0,0);
+}

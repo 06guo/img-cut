@@ -1,0 +1,75 @@
+{
+  "name": "img-cut-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint:style": "stylelint src --fix",
+    "lint": "vue-cli-service lint",
+    "test:e2e": "vue-cli-service test:e2e",
+    "test:unit": "vue-cli-service test:unit"
+  },
+  "gitHooks": {
+    "pre-commit": "lint-staged"
+  },
+  "lint-staged": {
+    "*.js": [
+      "vue-cli-service lint",
+      "git add"
+    ],
+    "*.vue": [
+      "vue-cli-service lint",
+      "stylelint --fix",
+      "git add"
+    ],
+    "*.css": [
+      "stylelint --fix",
+      "git add"
+    ],
+    "*.less": [
+      "stylelint --fix",
+      "git add"
+    ],
+    "*.scss": [
+      "stylelint --fix",
+      "git add"
+    ]
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "flex.css": "^1.1.7",
+    "fs-ui": "^0.1.24",
+    "md5": "^2.2.1",
+    "nprogress": "^0.2.0",
+    "postcss-pxtorem": "^4.0.1",
+    "vue": "^2.5.17",
+    "vue-router": "^3.0.1",
+    "vueg": "^1.3.4",
+    "vuex": "^3.0.1"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.0.4",
+    "@vue/cli-plugin-e2e-nightwatch": "^3.0.4",
+    "@vue/cli-plugin-eslint": "^3.0.4",
+    "@vue/cli-plugin-unit-jest": "^3.0.4",
+    "@vue/cli-service": "^3.0.4",
+    "@vue/eslint-config-standard": "^3.0.5",
+    "@vue/test-utils": "^1.0.0-beta.20",
+    "babel-core": "7.0.0-bridge.0",
+    "babel-jest": "^23.0.1",
+    "babel-plugin-import": "^1.11.0",
+    "lint-staged": "^8.1.0",
+    "node-sass": "^4.9.0",
+    "sass-loader": "^7.0.1",
+    "vconsole": "^3.2.0",
+    "vue-cli-plugin-fs-stylelint": "^0.1.2",
+    "vue-template-compiler": "^2.5.17"
+  },
+  "auth": "{{auth}}",
+  "description": "{{description}}",
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@app-api-test.51youdian.com:1105/web/{{name}}.git"
+  }
+}

@@ -1,0 +1,78 @@
+/* 重置样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  vertical-align: baseline;
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+p,
+blockquote,
+dl,
+dt,
+dd,
+ul,
+ol,
+li,
+pre,
+form,
+fieldset,
+legend,
+button,
+input,
+textarea,
+th,
+td {
+  margin: 0;
+  padding: 0;
+  vertical-align: baseline;
+}
+img {
+  border: 0 none;
+  vertical-align: top;
+}
+i,
+em {
+  font-style: normal;
+}
+ol,
+ul {
+  list-style: none;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+a {
+  color: #666;
+  text-decoration: none;
+}
+html {
+  width: 100%;
+  min-height: 100vh;
+}
+body {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+  line-height: 1.5;
+  color: #333;
+  font-family: Helvetica, 'Pingfang SC', 'Microsoft YaHei', STHeiti, Verdana, Arial, Tahoma, sans-serif;
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+input[type="text"],
+textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}

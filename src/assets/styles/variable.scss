@@ -1,0 +1,59 @@
+/* SCSS变量 */
+
+// 主体颜色
+$themeColor: #f04144;
+
+// 导航头
+$headerHeight: 44px;
+$headerFontSize: 18px;
+$navBackHeight: 14px;
+$navBackWidth: 8px;
+$navBackPaddingLR: 15px;
+$headerRightFontSize: 16px;
+$headerRightIconWidth: 16px;
+$headerRightIconHeight: 16px;
+
+// tabs 字体大小 和 高度
+$tabsFontSize: 16px;
+$tabsHeight: 44px;
+
+// 标题前面竖线宽高间距
+$titlePrefixGHeight: 14px;
+$titlePrefixWidth: 3px;
+$titlePrefixMarginRight: 5px;
+$titleFontSize: 16px;
+$titlePaddingTB: 12px;
+
+// 字色
+$titleColor: #333;
+$inputColor: #666;
+$inputPlaceholder: #ccc;
+$btnDisableColor: #ccc;
+
+// 底部按钮
+$bottomBtnHeight: 50px;
+$bottomBtnSingleFontSize: 17px;
+$bottomBtnDoubleFontSize: 14px;
+
+// 单选框 复选框 大小
+$radioWidth32: 16px;
+$radioWidth36: 18px;
+$radioWidth40: 20px;
+$checkboxWidth: 16px;
+$checkboxRadius: 3px;
+
+// 下拉选项
+$sliderItemHeight: 44px;
+$sliderItemFontSize: 14px;
+$sliderItemPaddingLR: 15px;
+
+// border color
+$devideColor: #e5e5e5;
+
+// 背景颜色
+$grayBgColor: #f6f6f6;
+$whiteColor: #fff;
+$tipColor: #999;
+
+// 边框间隔
+$defaultPadding: 15px;

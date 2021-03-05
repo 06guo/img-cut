@@ -1,0 +1,7 @@
+/* 引入的背景图片的SCSS变量， 这边做统一管理，其他文件统一引入 */
+
+// 外链链接的公共域名
+$imgHost: 'https://life-circle.oss-cn-beijing.aliyuncs.com';
+
+// 以下是各个模块需要引用的背景图片变量，每个图片都做好备注，各个模块做好注释分离，命名通熟易懂
+$testBackgroundImages: $imgHost + "/img/01.006d32a.png";
