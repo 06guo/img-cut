@@ -4,18 +4,16 @@
     <div ref="imgToFile" id="imgToFile" class="display-img" :style="{
     'width': trueWidth + 'px',
     'height': trueHeight + 'px',
-    'top':  initY + 'px',
-    'left':  initX  + 'px',
-    'transform': 'scale(' + scale + ',' + scale + ') ' + 'translate3d('+ x  + 'px,' + y + 'px,' + '0)'
+    'transform': 'scale(' + scale + ',' + scale + ') ' + 'translate3d('+ x / scale + 'px,' + y / scale + 'px,' + '0)'
     + 'rotateZ('+ rotate * 90 +'deg)'
     }">
-      <img ref="pic" :src="imgs">
+      <img :src="imgs">
     </div>
     <!-- 图片展示 E -->
     <!-- 遮罩层 S -->
-    <div class="mask-content-bg" @mousedown="startMove" @touchstart="startMove">
+    <div class="mask-content-bg">
       <div class="mask-layer-top bg-layer" :style="{height: cutTop + 'px'}"></div>
-      <div class="mask-layer-middle" :style="{height: cropHeight + 'px'}">
+      <div class="mask-layer-middle" :style="{height: cropHeight + 'px'}" @mousedown="startMove" @touchstart="startMove">
         <span class="bg-layer content-layer" :style="{width: cutLeft + 'px', height: cropHeight + 'px'}"></span>
         <span class="content-layer content-layer-middle" :style="{width: cropWidth + 'px', height: cropHeight + 'px'}">
           <span></span>
@@ -79,6 +77,11 @@ export default ({
       type: String,
       default: 'png'
     },
+    // 是否自成截图框
+    autoCrop: {
+      type: Boolean,
+      default: false
+    },
     // 上传图片按照原始比例显示
     original: {
       type: Boolean,
@@ -110,6 +113,7 @@ export default ({
       trueWidth: 0,
       // 图片真实高度
       trueHeight: 0,
+      move: true,
       // 移动的x
       moveX: 0,
       // 移动的y
@@ -121,6 +125,13 @@ export default ({
       // 裁剪框大小
       cropW: 0,
       cropH: 0,
+      // 裁剪框的坐标轴
+      cropX: 0,
+      cropY: 0,
+      cropChangeX: 0,
+      cropChangeY: 0,
+      cropOffsertX: 0,
+      cropOffsertY: 0,
       // 支持的滚动事件
       support: '',
       // 移动端手指缩放
@@ -132,9 +143,33 @@ export default ({
       orientation: 0,
       // 图片缩放系数
       coe: 0.2,
-      // 初始图片的位置
-      initX: 0,
-      initY: 0
+      // 是否正在多次缩放
+      scaling: false,
+      scalingSet: '',
+      coeStatus: '',
+      // 控制emit触发频率
+      isCanShow: true
+    }
+  },
+  computed: {
+    cropInfo () {
+      let obj = {
+        top: '',
+        width: 0,
+        height: 0
+      }
+      obj.top = this.cropOffsertY > 21 ? '-21px' : '0px'
+      obj.width = this.cropW > 0 ? this.cropW : 0
+      obj.height = this.cropH > 0 ? this.cropH : 0
+      obj.width = +obj.width.toFixed(0)
+      obj.height = +obj.height.toFixed(0)
+      console.log(obj, 'obj------------------')
+      return obj
+    },
+    passive () {
+      return {
+        passive: false
+      }
     }
   },
   mounted () {
@@ -152,11 +187,13 @@ export default ({
     checkedImg () {
       if (this.imgUrl === null || this.imgUrl === '') {
         this.imgs = ''
+        // this.clearCrop()
         return
       }
       this.loading = true
       this.scale = 1
       this.rotate = 0
+      // this.clearCrop()
       let img = new Image()
       img.onload = () => {
         let width = img.width
@@ -174,6 +211,7 @@ export default ({
           width = (width / height) * max
           height = max
         }
+        // this.checkOrientationImage(img, this.orientation, width, height)
       }
       img.onerror = () => {
         this.$emit('imgLoad', 'error')
@@ -183,6 +221,105 @@ export default ({
         img.crossOrigin = ''
       }
       img.src = this.imgUrl
+    },
+    checkOrientationImage (img, orientation, width, height) {
+      // 如果是 chrome内核版本在81 safari 在 605 以上不处理图片旋转
+      // alert(navigator.userAgent)
+      // if (this.getVersion('chrome')[0] >= 81) {
+      //   orientation = -1
+      // } else {
+      //   if (this.getVersion('safari')[0] >= 605 ) {
+      //     const safariVersion = this.getVersion('version')
+      //     if (safariVersion[0] > 13 && safariVersion[1] > 1) {
+      //         orientation = -1
+      //     }
+      //   } else {
+      //     //  判断 ios 版本进行处理
+      //    // 针对 ios 版本大于 13.4的系统不做图片旋转
+      //    const isIos  = navigator.userAgent.toLowerCase().match(/cpu iphone os (.*?) like mac os/)
+      //    if (isIos) {
+      //      let version = isIos[1]
+      //      version = version.split('_')
+      //      if (version[0] > 13 ||  (version[0] >= 13 && version[1] >= 4)) {
+      //        orientation = -1
+      //      }
+      //    }
+      //   }
+      // }
+      // alert(`当前处理的orientation${orientation}`)
+      let canvas = document.createElement('canvas')
+      let ctx = canvas.getContext('2d')
+      ctx.save()
+      switch (orientation) {
+        case 2:
+          canvas.width = width
+          canvas.height = height
+          // horizontal flip
+          ctx.translate(width, 0)
+          ctx.scale(-1, 1)
+          break
+        case 3:
+          canvas.width = width
+          canvas.height = height
+          // 180 graus
+          ctx.translate(width / 2, height / 2)
+          ctx.rotate((180 * Math.PI) / 180)
+          ctx.translate(-width / 2, -height / 2)
+          break
+        case 4:
+          canvas.width = width
+          canvas.height = height
+          // vertical flip
+          ctx.translate(0, height)
+          ctx.scale(1, -1)
+          break
+        case 5:
+          // vertical flip + 90 rotate right
+          canvas.height = width
+          canvas.width = height
+          ctx.rotate(0.5 * Math.PI)
+          ctx.scale(1, -1)
+          break
+        case 6:
+          canvas.width = height
+          canvas.height = width
+          // 90 graus
+          ctx.translate(height / 2, width / 2)
+          ctx.rotate((90 * Math.PI) / 180)
+          ctx.translate(-width / 2, -height / 2)
+          break
+        case 7:
+          // horizontal flip + 90 rotate right
+          canvas.height = width
+          canvas.width = height
+          ctx.rotate(0.5 * Math.PI)
+          ctx.translate(width, -height)
+          ctx.scale(-1, 1)
+          break
+        case 8:
+          canvas.height = width
+          canvas.width = height
+          // -90 graus
+          ctx.translate(height / 2, width / 2)
+          ctx.rotate((-90 * Math.PI) / 180)
+          ctx.translate(-width / 2, -height / 2)
+          break
+        default:
+          canvas.width = width
+          canvas.height = height
+      }
+
+      ctx.drawImage(img, 0, 0, width, height)
+      ctx.restore()
+      canvas.toBlob(
+        (blob) => {
+          let data = URL.createObjectURL(blob)
+          URL.revokeObjectURL(this.imgs)
+          this.imgs = data
+        },
+        'image/' + this.outputType,
+        1
+      )
     },
     // reload 图片布局函数
     reload () {
@@ -200,7 +337,7 @@ export default ({
         // 存入图片真实高度
         this.trueWidth = img.width
         this.trueHeight = img.height
-        console.log(this.trueWidth, 'this.trueWidth', this.trueHeight)
+
         // 判断是否需要压缩大图
         if (!this.original) {
           // 判断布局方式 mode
@@ -217,11 +354,17 @@ export default ({
           this.scale = 1
         }
         this.$nextTick(() => {
-          this.initX = (this.w - this.trueWidth) / 2
-          this.initY = (this.h - this.trueHeight) / 2
+          this.x = (this.w - this.trueWidth) / 2
+          this.y = (this.h - this.trueHeight) / 2
           this.loading = false
           // 剪裁框布局
           this.getCutSize()
+          // 图片加载成功的回调
+          // this.$emit('img-load', 'success')
+          // this.$emit('imgLoad', 'success')
+          // setTimeout(() => {
+          //   this.showPreview()
+          // }, 20)
         })
       }
       img.onerror = () => {
@@ -259,9 +402,16 @@ export default ({
       this.cutTop = (this.h - this.cropHeight) / 2
       this.cutLeft = (this.w - this.cropWidth) / 2
     },
+    // 清除截图
+    clearCrop () {
+      this.cropping = false
+      this.cropW = 0
+      this.cropH = 0
+    },
     // 当按下鼠标键
     startMove (e) {
       // e.preventDefault()
+      console.log(e.clientX, e.clientY, e.touches[0].clientX)
       // 开始移动
       this.moveX = (e.clientX ? e.clientX : e.touches[0].clientX) - this.x
       this.moveY = (e.clientY ? e.clientY : e.touches[0].clientY) - this.y
@@ -297,18 +447,64 @@ export default ({
       changeY = nowY - this.moveY
       this.$nextTick(() => {
         if (this.centerBox) {
-          let dx = (this.cutLeft - (this.w - this.trueWidth * this.scale) / 2) / this.scale
-          let dy = (this.cutTop - (this.h - this.trueHeight * this.scale) / 2) / this.scale
-          changeX = Math.min(changeX, dx)
-          changeX = Math.max(changeX, -dx)
-          changeY = Math.min(changeY, dy)
-          changeY = Math.max(changeY, -dy)
+          let axis = this.getImgAxis(changeX, changeY, this.scale)
+          let cropAxis = this.getCropAxis()
+          console.log(axis, 'cropAxis', cropAxis)
+          let imgW = this.trueHeight * this.scale
+          let imgH = this.trueWidth * this.scale
+          let maxLeft, maxTop, maxRight, maxBottom
+          switch (this.rotate) {
+            case 1:
+            case -1:
+            case 3:
+            case -3:
+              maxLeft =
+                this.cutLeft -
+                (this.trueWidth * (1 - this.scale)) / 2 +
+                (imgW - imgH) / 2
+              maxTop =
+                this.cropHeight -
+                (this.trueHeight * (1 - this.scale)) / 2 +
+                (imgH - imgW) / 2
+              maxRight = maxLeft - imgW + this.cropWidth
+              maxBottom = maxTop - imgH + this.cropHeight
+              break
+            default:
+              maxLeft =
+                this.cutLeft - (this.trueWidth * (1 - this.scale)) / 2
+              maxTop =
+                this.cropHeight - (this.trueHeight * (1 - this.scale)) / 2
+              maxRight = maxLeft - imgH + this.cropWidth
+              maxBottom = maxTop - imgW + this.cropHeight
+              break
+          }
+          // 图片左边 图片不能超过截图框
+          console.log(axis.x1, 'x1', cropAxis.x1)
+          console.log(axis.y1, 'y1', cropAxis.y1)
+          console.log(axis.x2, 'x2', cropAxis.x2)
+          console.log(axis.y2, 'y2', cropAxis.y2)
+          if (axis.x1 >= cropAxis.x1) {
+            changeX = maxLeft
+          }
+
+          // 图片上边 图片不能超过截图框
+          if (axis.y1 >= cropAxis.y1) {
+            changeY = maxTop
+          }
+
+          // 图片右边
+          if (axis.x2 <= cropAxis.x2) {
+            changeX = maxRight
+          }
+
+          // 图片下边
+          if (axis.y2 <= cropAxis.y2) {
+            changeY = maxBottom
+          }
         }
         this.x = changeX
         this.y = changeY
       })
-      this.x = changeX
-      this.y = changeY
     },
     // 移动图片结束
     leaveImg (e) {
@@ -316,9 +512,25 @@ export default ({
       window.removeEventListener('touchmove', this.moveImg)
       window.removeEventListener('mouseup', this.leaveImg)
       window.removeEventListener('touchend', this.leaveImg)
+      // 触发图片移动事件
+      this.$emit('imgMoving', {
+        moving: false,
+        axis: this.getImgAxis()
+      })
+      this.$emit('img-moving', {
+        moving: false,
+        axis: this.getImgAxis()
+      })
+    },
+    // 缩放图片
+    scaleImg () {
+      if (this.canScale) {
+        window.addEventListener(this.support, this.changeSize, this.passive)
+      }
     },
     // 移动端缩放
     touchScale (e) {
+      debugger
       e.preventDefault()
       let scale = this.scale
       // 记录变化量
@@ -336,53 +548,117 @@ export default ({
         x: this.touches[1].clientX,
         y: this.touches[1].clientY
       }
-      if (e.touches.length === 2) {
-        var newTouch2 = {
-          x: e.touches[1].clientX,
-          y: e.touches[1].clientY
+      var newTouch2 = {
+        x: e.touches[1].clientX,
+        y: e.touches[1].clientY
+      }
+      var oldL = Math.sqrt(
+        Math.pow(oldTouch1.x - oldTouch2.x, 2) +
+          Math.pow(oldTouch1.y - oldTouch2.y, 2)
+      )
+      var newL = Math.sqrt(
+        Math.pow(newTouch1.x - newTouch2.x, 2) +
+          Math.pow(newTouch1.y - newTouch2.y, 2)
+      )
+      var cha = newL - oldL
+      // 根据图片本身大小 决定每次改变大小的系数, 图片越大系数越小
+      // 1px - 0.2
+      var coe = 1
+      coe =
+        coe / this.trueWidth > coe / this.trueHeight
+          ? coe / this.trueHeight
+          : coe / this.trueWidth
+      coe = coe > 0.1 ? 0.1 : coe
+      var num = coe * cha
+      console.log(num, 'num-----')
+      if (!this.touchNow) {
+        this.touchNow = true
+        if (cha > 0) {
+          scale += Math.abs(num)
+        } else if (cha < 0) {
+          scale = scale > Math.abs(num) ? (scale -= Math.abs(num)) : scale
+          console.log(scale, 'scale------')
         }
-        var oldL = Math.sqrt(
-          Math.pow(oldTouch1.x - oldTouch2.x, 2) +
-            Math.pow(oldTouch1.y - oldTouch2.y, 2)
-        )
-        var newL = Math.sqrt(
-          Math.pow(newTouch1.x - newTouch2.x, 2) +
-            Math.pow(newTouch1.y - newTouch2.y, 2)
-        )
-        var cha = newL - oldL
-        // 根据图片本身大小 决定每次改变大小的系数, 图片越大系数越小
-        // 1px - 0.2
-        var coe = 1
-        coe =
-          coe / this.trueWidth > coe / this.trueHeight
-            ? coe / this.trueHeight
-            : coe / this.trueWidth
-        coe = coe > 0.1 ? 0.1 : coe
-        var num = coe * cha
-        if (!this.touchNow) {
-          this.touchNow = true
-          if (cha > 0) {
-            scale += Math.abs(num)
-          } else if (cha < 0) {
-            scale = scale > Math.abs(num) ? (scale -= Math.abs(num)) : scale
-          }
-          this.touches = e.touches
-          setTimeout(() => {
-            this.touchNow = false
-          }, 8)
-          if (this.centerBox) {
-            if (this.trueWidth * scale < this.cropWidth || this.trueHeight * scale < this.cropHeight) {
-              return false
-            }
-            let dx = (this.cutLeft - (this.w - this.trueWidth * scale) / 2) / scale
-            let dy = (this.cutTop - (this.h - this.trueHeight * scale) / 2) / scale
-            if (this.scale > scale && (dx < this.x || -dx > this.x || dy < this.y || -dy > this.y)) return false
-            this.scale = scale
-          } else {
-            this.scale = scale
-          }
+        this.touches = e.touches
+        setTimeout(() => {
+          this.touchNow = false
+        }, 8)
+        if (!this.checkoutImgAxis(this.x, this.y, scale)) {
+          return false
+        }
+        this.scale = scale
+      }
+    },
+    // 图片坐标点校验
+    checkoutImgAxis (x, y, scale) {
+      x = x || this.x
+      y = y || this.y
+      scale = scale || this.scale
+      let canGo = true
+      // 开始校验 如果说缩放之后的坐标在截图框外 则阻止缩放
+      if (this.centerBox) {
+        let axis = this.getImgAxis(x, y, scale)
+        let cropAxis = this.getCropAxis()
+        // 左边的横坐标 图片不能超过截图框
+        if (axis.x1 >= cropAxis.x1) {
+          canGo = false
+        }
+        // 右边横坐标
+        if (axis.x2 <= cropAxis.x2) {
+          canGo = false
+        }
+
+        // 纵坐标上面
+        if (axis.y1 >= cropAxis.y1) {
+          canGo = false
+        }
+
+        // 纵坐标下面
+        if (axis.y2 <= cropAxis.y2) {
+          canGo = false
         }
       }
+      return canGo
+    },
+    // 算出不同场景下面 图片相对于外层容器的坐标轴
+    getImgAxis (x, y, scale) {
+      x = x || this.x
+      y = y || this.y
+      scale = scale || this.scale
+      // 如果设置了截图框在图片内， 那么限制截图框不能超过图片的坐标
+      // 图片的坐标
+      let obj = {
+        x1: 0,
+        x2: 0,
+        y1: 0,
+        y2: 0
+      }
+      let imgW = this.trueWidth * scale
+      let imgH = this.trueHeight * scale
+      switch (this.rotate) {
+        case 0:
+          obj.x1 = x + (this.trueWidth * (1 - scale)) / 2
+          obj.x2 = obj.x1 + this.trueWidth * scale
+          obj.y1 = y + (this.trueHeight * (1 - scale)) / 2
+          obj.y2 = obj.y1 + this.trueHeight * scale
+          break
+        case 1:
+        case -1:
+        case 3:
+        case -3:
+          obj.x1 = x + (this.trueWidth * (1 - scale)) / 2 + (imgW - imgH) / 2
+          obj.x2 = obj.x1 + this.trueHeight * scale
+          obj.y1 = y + (this.trueHeight * (1 - scale)) / 2 + (imgH - imgW) / 2
+          obj.y2 = obj.y1 + this.trueWidth * scale
+          break
+        default:
+          obj.x1 = x + (this.trueWidth * (1 - scale)) / 2
+          obj.x2 = obj.x1 + this.trueWidth * scale
+          obj.y1 = y + (this.trueHeight * (1 - scale)) / 2
+          obj.y2 = obj.y1 + this.trueHeight * scale
+          break
+      }
+      return obj
     },
     // 获取截图框的坐标轴
     getCropAxis () {
@@ -403,8 +679,7 @@ export default ({
      */
     getCropChecked (cb) {
       let canvas = document.createElement('canvas')
-      // let canvas = document.getElementById('canvasID')
-      // canvas.toDataURL('image/png')
+      canvas.toDataURL('image/png')
       let img = new Image()
       let rotate = this.rotate
       let trueWidth = this.trueWidth
@@ -436,10 +711,13 @@ export default ({
           //   dpr
           // let dy = 0
           // console.log('++++++++', this.y, this.cropHeight, this.trueHeight, this.scale)
-          console.log(this.x, this.cutLeft, this.initX)
-          let dx = (this.cutLeft - (this.w - this.trueWidth * this.scale) / 2) / this.scale - this.x
+          let dx =
+            (this.x - this.cutLeft + (this.trueWidth * (1 - this.scale)) / 2) *
+            dpr
           // 图片y轴偏移
-          let dy = (this.cutTop - (this.h - this.trueHeight * this.scale) / 2) / this.scale - this.y
+          let dy =
+            (this.y - this.cropHeight + (this.trueHeight * (1 - this.scale)) / 2) *
+            dpr
           // 保存状态
           setCanvasSize(width, height)
           console.log(this.cutLeft, this.cropHeight, this.x, this.y, '1-1-1-1-1-1-1-1')
@@ -452,7 +730,6 @@ export default ({
             case 0:
               if (!this.full) {
                 console.log('++++++++', img.width, img.height)
-                console.log(dx, dy, this.cropWidth / this.scale, this.cropHeight / this.scale, 0, 0, this.cropWidth, this.cropHeight)
                 ctx.drawImage(img, dx, dy, this.cropWidth / this.scale, this.cropHeight / this.scale, 0, 0, this.cropWidth, this.cropHeight)
                 // ctx.drawImage(img, dx, 0, this.cropWidth / this.scale, this.cropHeight / this.scale, 0, 0, this.cropWidth, this.cropHeight)
               } else {
@@ -588,6 +865,7 @@ export default ({
           }
           ctx.restore()
         }
+        debugger
         cb(canvas)
       }
       // 判断图片是否是base64
@@ -606,6 +884,7 @@ export default ({
      * @function 确定操作
      */
     confirm () {
+      debugger
       this.getCropChecked(data => {
         console.log('this.outputType', this.outputType, this.outputSize, data)
         let urlData = data.toDataURL('image/' + this.outputType, this.outputSize)
@@ -640,7 +919,6 @@ export default ({
   position: absolute;
   top: 0;
   left: 0;
-  overflow: hidden;
   width: 100%;
   height: 100%;
   background-color: black;
@@ -673,50 +951,50 @@ export default ({
     background: white;
     &:nth-child(1) {
       top: 0;
-      left: -2px;
-      width: 4px;
+      left: 0;
+      width: 2px;
       height: 16px;
     }
     &:nth-child(2) {
-      top: -2px;
+      top: 0;
       left: 0;
       width: 16px;
-      height: 4px;
+      height: 2px;
     }
     &:nth-child(3) {
-      top: -2px;
+      top: 0;
       right: 0;
       width: 16px;
-      height: 4px;
+      height: 2px;
     }
     &:nth-child(4) {
       top: 0;
-      right: -2px;
-      width: 4px;
+      right: 0;
+      width: 2px;
       height: 16px;
     }
     &:nth-child(5) {
-      right: -2px;
+      right: 0;
       bottom: 0;
-      width: 4px;
+      width: 2px;
       height: 16px;
     }
     &:nth-child(6) {
       right: 0;
-      bottom: -2px;
+      bottom: 0;
       width: 16px;
-      height: 4px;
+      height: 2px;
     }
     &:nth-child(7) {
-      bottom: -2px;
+      bottom: 0;
       left: 0;
       width: 16px;
-      height: 4px;
+      height: 2px;
     }
     &:nth-child(8) {
       bottom: 0;
-      left: -2px;
-      width: 4px;
+      left: 0;
+      width: 2px;
       height: 16px;
     }
   }
